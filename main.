@@ -1,0 +1,59 @@
+import pygame as pg
+import random
+
+W = 600
+H = 400
+
+BROWN = (59, 24, 11)
+GRAY = (194, 194, 194)
+YELLOW = (255, 247, 0)
+RED = (209, 29, 29)
+
+FPS = 60  # число кадров в секунду
+
+pg.init()
+sc = pg.display.set_mode((W, H))
+pg.display.set_caption("Класс Surface")
+clock = pg.time.Clock()
+
+bg = pg.Surface((W, H))
+bg.fill(BROWN)
+pg.draw.rect(bg, GRAY, (0, 50, W, 100))
+pg.draw.rect(bg, GRAY, (0, 250, W, 100))
+
+ball_lst = []
+
+class Ball:
+    def __int__(self):
+        COLOR = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+        self.surf = pg.Surface((100, 100), pg.SRCALPHA)
+        self.rect = self.surf.get_rect(topleft=(0, 50))
+        self.size = random.randint(10, 50)
+        self.speed = random.randint(1, 30)
+        pg.draw.circle(self.surf, (*COLOR, random.randint(100, 250)), (50, 50), self.size)
+        ball_lst.append(self)
+
+    def move(self):
+        if self.left <= W and self.top == 50:
+            self.right += self.speed
+        elif self.left > W and self.top == 50:
+            self.top += 200
+        elif self.right > 0 and self.top == 250:
+            self.left -= self.speed
+        elif self.right < 0 and self.top == 250:
+            self.top -= 200
+
+while True:
+    for event in pg.event.get():
+        if event.type == pg.QUIT:
+            exit()
+    pressed = pg.mouse.get_pressed()
+    if pressed[0]:
+        ball = Ball()
+    sc.blit(bg, (0, 0))
+    for elem in ball_lst:
+        
+        sc.blit(elem.surf, elem.rect)
+
+    pg.display.update()
+    clock.tick(FPS)
