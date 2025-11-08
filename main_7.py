@@ -9,11 +9,11 @@ GRAY = (194, 194, 194)
 YELLOW = (255, 247, 0)
 RED = (209, 29, 29)
 
-FPS = 60  # число кадров в секунду
+FPS = 60 
 
 pg.init()
 sc = pg.display.set_mode((W, H))
-pg.display.set_caption("Класс Surface")
+pg.display.set_caption("Surface")
 clock = pg.time.Clock()
 
 bg = pg.Surface((W, H))
@@ -24,14 +24,14 @@ pg.draw.rect(bg, GRAY, (0, 250, W, 100))
 ball_lst = []
 
 
-def random():
+def rand():
     return random.randint(50, 250)
 
 
 class Ball:
     def __init__(self, COLOR, size, speed):
         if COLOR == "random":
-            self.COLOR = (random(), random(), random(), random())
+            self.COLOR = (rand(), rand(), rand(), rand())
         else:
             self.COLOR = COLOR
         self.surf = pg.Surface((100, 100), pg.SRCALPHA)
@@ -57,7 +57,7 @@ class Ball:
             self.rect.top -= 200
 
     def draw(self):
-        sc.blit(self.surf, self.rectan)
+        sc.blit(self.surf, self.rect)
 
 
 ball_lst.append(Ball((209, 29, 29, 100), 20, 10))
