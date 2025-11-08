@@ -23,33 +23,38 @@ pg.draw.rect(bg, GRAY, (0, 250, W, 100))
 
 ball_lst = []
 
+
+def random():
+    return random.randint(50, 250)
+
+
 class Ball:
     def __init__(self, COLOR, size, speed):
         if COLOR == "random":
-            self.COLOR = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255), random.randint(100, 250))
+            self.COLOR = (random(), random(), random(), random())
         else:
             self.COLOR = COLOR
         self.surf = pg.Surface((100, 100), pg.SRCALPHA)
-        self.rectan = self.surf.get_rect(topleft=(0, 50))
+        self.rect = self.surf.get_rect(topleft=(0, 50))
         if size == "random":
             self.size = random.randint(10, 50)
         else:
             self.size = size
         if speed == "random":
-            self.speed = random.randint(1, 30)
+            self.speed = random.randint(1, 40)
         else:
             self.speed = speed
         pg.draw.circle(self.surf, self.COLOR, (50, 50), self.size)
 
     def move(self):
-        if self.rectan.left <= W and self.rectan.top == 50:
-            self.rectan.right += self.speed
-        elif self.rectan.left >= W and self.rectan.top == 50:
-            self.rectan.top += 200
-        elif self.rectan.right >= 0 and self.rectan.top == 250:
-            self.rectan.left -= self.speed
-        elif self.rectan.right <= 0 and self.rectan.top == 250:
-            self.rectan.top -= 200
+        if self.rect.left <= W and self.rect.top == 50:
+            self.rect.right += self.speed
+        elif self.rect.left >= W and self.rect.top == 50:
+            self.rect.top += 200
+        elif self.rect.right >= 0 and self.rect.top == 250:
+            self.rect.left -= self.speed
+        elif self.rect.right <= 0 and self.rect.top == 250:
+            self.rect.top -= 200
 
     def draw(self):
         sc.blit(self.surf, self.rectan)
