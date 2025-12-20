@@ -1,111 +1,148 @@
+import random
 import pygame as pg
-import random as rn
 
-W = 600
-H = 400
+FPS = 30
+W, H = 1000, 800
 
 BLACK = (0, 0, 0)
-GRAY = (82, 82, 82)
-YELLOW = (255, 247, 0)
-WHITE = (255, 255, 255)
-COLOR = (153, 119, 89)
 RED = (255, 0, 0)
 DARK_RED = (209, 0, 0)
 
-FPS = 60
 pg.mixer.pre_init(44100, -16, 1, 512)
 pg.init()
 
-pg.mixer.music.load('sounds/bg_music.wav')
-pg.mixer.music.play(-1)
-
-car_crash = pg.mixer.Sound('sounds/car_crash.wav')
-
-cars = pg.sprite.Group()
-pg.init()
 sc = pg.display.set_mode((W, H))
-pg.display.set_caption("car")
+pg.display.set_caption("Snake")
 clock = pg.time.Clock()
 
-bg = pg.Surface((W, H))
-bg.fill(GRAY)
-pg.draw.rect(bg, WHITE, (195, 0, 10, H))
-pg.draw.rect(bg, WHITE, (395, 0, 10, H))
+bg = pg.image.load("images/background.png")
 
 
-class Player:
+def apple_rand(occupied, exclude=None):
+    attempts = 0
+    while attempts < 100:
+        attempts += 1
+        x, y = random.randint(1, 24) * 40, random.randint(1, 19) * 40
+        pos = (x, y)
+        if pos not in occupied and pos != exclude:
+            return pos
+    return -40, -40
 
-    def __init__(self):
-        self.size = 10
-        self.speed = 6
-        self.surf = pg.image.load('images/car.png')
-        self.rect = self.surf.get_rect(center=(W / 2, H / 2 + 50))
-        self.mask = pg.mask.from_surface(self.surf)
+
+def check_click_on_button(button):
+    if button.button_rect.collidepoint(pg.mouse.get_pos()):
+        return True
+
+
+def direct(self, d):
+    if d == "right" and self.direction != "left":
+        self.surf = pg.transform.rotate(pg.image.load('images/snake_head.png'), -90)
+        self.surf = pg.transform.scale_by(self.surf, 2)
+        return 'right'
+    elif d == "left" and self.direction != "right":
+        self.surf = pg.transform.rotate(pg.image.load(self.image), 90)
+        self.surf = pg.transform.scale_by(self.surf, 2)
+        return "left"
+    elif d == "down" and self.direction != "up":
+        self.surf = pg.transform.rotate(pg.image.load(self.image), 180)
+        self.surf = pg.transform.scale_by(self.surf, 2)
+        return 'down'
+    elif d == "up" and self.direction != "down":
+        self.surf = pg.image.load(self.image)
+        self.surf = pg.transform.scale_by(self.surf, 2)
+        return "up"
+    return self.direction
+
+
+class Head:
+    def __init__(self, cords=(520, 200)):
+        self.image = 'images/snake_head.png'
+        self.surf = pg.image.load('images/snake_head.png')
+        self.surf = pg.transform.scale_by(self.surf, 2)
+        self.cords = cords
+        self.old_cords = cords
         self.stop = False
-        self.crash_played = False
+        self.direction = "right"
+        self.surf = pg.transform.rotate(self.surf, -90)
+        self.stop = 0
+        self.old_dir = self.direction
 
-    def move(self, dx=0, dy=0):
-        if (self.rect.left + dx * self.speed) > 0 and (self.rect.right + dx * self.speed) < W:
-            self.rect.x += dx * self.speed
-        if (self.rect.top + dy * self.speed) > 0 and (self.rect.bottom + dy * self.speed) < H:
-            self.rect.y += dy * self.speed
+    def move(self):
+        self.old_cords = self.cords
+        if self.direction == "right":
+            self.cords = (self.cords[0] + 40, self.cords[1])
+        elif self.direction == "left":
+            self.cords = (self.cords[0] - 40, self.cords[1])
+        elif self.direction == "up":
+            self.cords = (self.cords[0], self.cords[1] - 40)
+        elif self.direction == "down":
+            self.cords = (self.cords[0], self.cords[1] + 40)
 
-    def draw(self):
-        sc.blit(self.surf, self.rect)
+        if self.cords[0] >= W:
+            self.cords = (0, self.cords[1])
+        if self.cords[0] < 0:
+            self.cords = (W - 40, self.cords[1])
+        if self.cords[1] >= H:
+            self.cords = (self.cords[0], 0)
+        if self.cords[1] < 0:
+            self.cords = (self.cords[0], H - 40)
+
+    def direct(self, d):
+        self.direction = direct(self, d)
 
     def los(self):
-        if not self.crash_played:
-            car_crash.play()
-            self.crash_played = True
-        self.speed = 0
-        self.stop = True
+        print("los")
+        self.stop = 1
 
-    def reset(self):
-        self.speed = 6
-        self.surf = pg.image.load('images/car.png')
-        self.rect = self.surf.get_rect(center=(W / 2, H / 2))
-        self.mask = pg.mask.from_surface(self.surf)
-        self.stop = False
-        self.crash_played = False
+    def draw(self, screen):
+        screen.blit(self.surf, self.cords)
 
 
-class Enemy (pg.sprite.Sprite):
-    def __init__(self, x, filename, group):
-        pg.sprite.Sprite.__init__(self)
-        self.surf = pg.image.load(filename)
-        self.rect = self.surf.get_rect(center=(x, 0))
-        self.speed = rn.randint(5, 12)
-        self.mask = pg.mask.from_surface(self.surf)
-        self.add(group)
+class Body:
+    def __init__(self, cords):
+        self.image = 'images/snake_body.png'
+        self.direction = ""
+        self.cords = cords
+        self.surf = pg.image.load('images/snake_body.png')
+        self.surf = pg.transform.scale_by(self.surf, 2)
+        self.direction_to = self.direction
+        self.direction_curr = "right"
 
-    def spawn(self):
-        self.rect.center = (rn.randint(10, W - 10), -10)
-        self.speed = rn.randint(5, 12)
+    def move(self, new_cords):
+        self.cords = new_cords
 
-    def check_down(self):
-        if self.rect.top == H:
-            self.spawn()
+    def direct(self, d):
+        self.direction = direct(self, d)
 
-    def draw(self):
-        sc.blit(self.surf, self.rect)
+    def draw(self, screen):
+        if self == body_parts[-1]:
+            self.surf = pg.image.load('images/snake_end.png')
+            self.image = 'images/snake_end.png'
+            self.surf = pg.transform.scale_by(self.surf, 2)
+        elif False:
+            pass
+        elif self != body_parts[-1]:
+            self.surf = pg.image.load('images/snake_body.png')
+            self.image = 'images/snake_body.png'
+            self.surf = pg.transform.scale_by(self.surf, 2)
+        screen.blit(self.surf, self.cords)
 
-    def update(self):
-        if self.rect.top < H:
-            self.rect.top += self.speed
-            self.draw()
-        else:
-            self.spawn()
 
-    def stop(self):
-        self.speed = 0
+class Apples:
+    def __init__(self):
+        occupied = [elem.cords for elem in body_parts] + [a.cords for a in apples]
+        self.cords = apple_rand(occupied)
+        self.surf = pg.image.load('images/apple.png')
+        self.surf = pg.transform.scale_by(self.surf, 2)
 
-    def reset(self):
-        self.spawn()
-        self.speed = rn.randint(5, 12)
+    def draw(self, screen):
+        screen.blit(self.surf, self.cords)
 
 
 class Button:
     def __init__(self, text, text_size, text_color, button_color, button_pos):
+        self.bg_surf = pg.Surface((W, H), pg.SRCALPHA)
+        pg.draw.rect(self.bg_surf, (*BLACK, 128), (0, 0, W, H))
         self.button_color = None
         self.font = pg.font.SysFont(None, text_size)
         self.text_surf = self.font.render(text, True, text_color)
@@ -116,7 +153,7 @@ class Button:
         pg.draw.rect(self.button_surf, BLACK, (0, 0, self.button_rect.width, self.button_rect.height), 3)
 
     def draw(self, screen):
-        if car.stop:
+        if head.stop:
             screen.blit(self.button_surf, self.button_rect)
             screen.blit(self.text_surf, self.text_rect)
 
@@ -126,64 +163,108 @@ class Button:
         pg.draw.rect(self.button_surf, BLACK, (0, 0, self.button_rect.width, self.button_rect.height), 3)
 
 
-def check_click_on_button(button):
-    if button.button_rect.collidepoint(pg.mouse.get_pos()):
-        return True
+sc.blit(bg, (0, 0))
+pg.display.update()
+flag_play = True
 
 
-def check_collisions(player, enemys):
-    for enemy2 in enemys:
-        offset_x = enemy2.rect.left - player.rect.left
-        offset_y = enemy2.rect.top - player.rect.top
-        if player.mask.overlap(enemy2.mask, (offset_x, offset_y)) is not None:
-            player.los()
-            for e in enemys:
-                e.stop()
-            break
+def main():
+    cnt = 0
+    head.stop = 0
+    key_pressed = ''
+    while True:
+        clock.tick(FPS)
+        cnt += 1
+
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                pg.quit()
+                return
+
+        if head.stop:
+            los()
+            return
+
+        keys = pg.key.get_pressed()
+        if keys[pg.K_LEFT]:
+            key_pressed = "left"
+        elif keys[pg.K_RIGHT]:
+            key_pressed = "right"
+        elif keys[pg.K_UP]:
+            key_pressed = "up"
+        elif keys[pg.K_DOWN]:
+            key_pressed = "down"
+
+        if cnt >= 30:
+            if key_pressed == "left":
+                head.direct("left")
+            elif key_pressed == "right":
+                head.direct("right")
+            elif key_pressed == "up":
+                head.direct("up")
+            elif key_pressed == "down":
+                head.direct("down")
+            old_positions = [elem.cords for elem in body_parts]
+            head.move()
+            for i in range(1, len(body_parts)):
+                body_parts[i].move(old_positions[i - 1])
+
+            cnt = 0
+
+        for apple in apples:
+            if head.cords == apple.cords:
+                last_part = body_parts[-1]
+                body_parts.append(Body(last_part.cords))
+                occupied = [elem.cords for elem in body_parts] + [a.cords for a in apples]
+                apple.cords = apple_rand(occupied)
+                print(apple.cords)
+
+        for part in body_parts[1:]:
+            if head.cords == part.cords:
+                head.los()
+
+        sc.blit(bg, (0, 0))
+        for elem in body_parts[1::]:
+            elem.draw(sc)
+        head.draw(sc)
+        for elem in apples:
+            elem.draw(sc)
+        pg.display.update()
 
 
-my_button = Button("You lost, press r to reset", 32, BLACK, RED, (W // 2, H // 2))
-car = Player()
-enemy = [Enemy(rn.randint(10, W - 10), "images/car1.png", cars),
-         Enemy(rn.randint(10, W - 10), "images/car2.png", cars),
-         Enemy(rn.randint(10, W - 10), "images/car3.png", cars)]
+def los():
+    while True:
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                exit()
+            if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+                if check_click_on_button(my_button):
+                    return
+            elif event.type == pg.KEYDOWN and event.key == pg.K_r:
+                return
 
-while True:
-    for event in pg.event.get():
-        if event.type == pg.QUIT:
-            exit()
-        if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
-            if check_click_on_button(my_button):
-                car.reset()
-                for elem in enemy:
-                    elem.reset()
-        elif event.type == pg.KEYDOWN and event.key == pg.K_r:
-            if car.stop:
-                car.reset()
-                for elem in enemy:
-                    elem.reset()
+        if check_click_on_button(my_button):
+            my_button.update_color(DARK_RED)
+        else:
+            my_button.update_color(RED)
 
-    check_collisions(car, enemy)
+        sc.blit(bg, (0, 0))
+        for elem in body_parts[1::]:
+            elem.draw(sc)
+        head.draw(sc)
+        for elem in apples:
+            elem.draw(sc)
+        sc.blit(my_button.bg_surf, (0, 0))
+        my_button.draw(sc)
+        pg.display.update()
+        clock.tick(FPS)
 
-    if check_click_on_button(my_button):
-        my_button.update_color(DARK_RED)
-    else:
-        my_button.update_color(RED)
 
-    keys = pg.key.get_pressed()
-    if keys[pg.K_LEFT]:
-        car.move(dx=-1)
-    if keys[pg.K_RIGHT]:
-        car.move(dx=1)
-    if keys[pg.K_UP]:
-        car.move(dy=-1)
-    if keys[pg.K_DOWN]:
-        car.move(dy=1)
-
-    check_collisions(car, enemy)
-    sc.blit(bg, (0, 0))
-    car.draw()
-    cars.update()
-    my_button.draw(sc)
-    pg.display.update()
-    clock.tick(FPS)
+while flag_play:
+    head = Head()
+    body_parts = [head, Body((480, 200)), Body((440, 200)), Body((400, 200))]
+    apples = []
+    for _ in range(6):
+        apples.append(Apples())
+    my_button = Button("You lost, press r to reset", 32, BLACK, RED, (W // 2, H // 2))
+    main()
