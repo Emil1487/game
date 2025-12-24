@@ -22,7 +22,7 @@ def apple_rand(occupied, exclude=None):
     attempts = 0
     while attempts < 100:
         attempts += 1
-        x, y = random.randint(1, 24) * 40, random.randint(1, 19) * 40
+        x, y = random.randint(0, 24) * 40, random.randint(0, 19) * 40
         pos = (x, y)
         if pos not in occupied and pos != exclude:
             return pos
@@ -55,7 +55,7 @@ def direct(self, d):
 
 
 class Head:
-    def __init__(self, cords=(520, 200)):
+    def __init__(self, score=0, cords=(520, 200)):
         self.image = 'images/snake_head.png'
         self.surf = pg.image.load('images/snake_head.png')
         self.surf = pg.transform.scale_by(self.surf, 2)
@@ -66,6 +66,7 @@ class Head:
         self.surf = pg.transform.rotate(self.surf, -90)
         self.stop = 0
         self.old_dir = self.direction
+        self.score = score
 
     def move(self):
         self.old_cords = self.cords
@@ -78,20 +79,13 @@ class Head:
         elif self.direction == "down":
             self.cords = (self.cords[0], self.cords[1] + 40)
 
-        if self.cords[0] >= W:
-            self.cords = (0, self.cords[1])
-        if self.cords[0] < 0:
-            self.cords = (W - 40, self.cords[1])
-        if self.cords[1] >= H:
-            self.cords = (self.cords[0], 0)
-        if self.cords[1] < 0:
-            self.cords = (self.cords[0], H - 40)
+        if self.cords[0] >= W or self.cords[0] < 0 or self.cords[1] >= H or self.cords[1] < 0:
+            self.los()
 
     def direct(self, d):
         self.direction = direct(self, d)
 
     def los(self):
-        print("los")
         self.stop = 1
 
     def draw(self, screen):
@@ -114,17 +108,60 @@ class Body:
     def direct(self, d):
         self.direction = direct(self, d)
 
-    def draw(self, screen):
+    def find_dir(self, index):
+        if self.cords[0] < body_parts[index - 1].cords[0]:
+            self.surf = pg.transform.rotate(self.surf, -90)
+        elif self.cords[0] > body_parts[index - 1].cords[0]:
+            self.surf = pg.transform.rotate(self.surf, 90)
+        elif self.cords[1] < body_parts[index - 1].cords[1]:
+            self.surf = pg.transform.rotate(self.surf, 180)
+        elif self.cords[1] > body_parts[index - 1].cords[1]:
+            pass
+
+    def draw(self, screen, index):
         if self == body_parts[-1]:
             self.surf = pg.image.load('images/snake_end.png')
             self.image = 'images/snake_end.png'
             self.surf = pg.transform.scale_by(self.surf, 2)
-        elif False:
-            pass
-        elif self != body_parts[-1]:
+            self.find_dir(index)
+            screen.blit(self.surf, self.cords)
+            return
+        if self != body_parts[-1]:
             self.surf = pg.image.load('images/snake_body.png')
             self.image = 'images/snake_body.png'
             self.surf = pg.transform.scale_by(self.surf, 2)
+            self.find_dir(index)
+
+        if (body_parts[index - 1].cords[0] != body_parts[index + 1].cords[0] and body_parts[index - 1].cords[1] !=
+                body_parts[index + 1].cords[1]):
+            self.surf = pg.image.load('images/snake_corner.png')
+            self.image = 'images/snake_corner.png'
+            self.surf = pg.transform.scale_by(self.surf, 2)
+
+            if self.cords[0] > body_parts[index - 1].cords[0] and self.cords[1] == body_parts[index - 1].cords[1]:
+                if self.cords[1] < body_parts[index + 1].cords[1]:
+                    self.surf = pg.transform.rotate(self.surf, 90)
+                elif self.cords[1] > body_parts[index + 1].cords[1]:
+                    pass
+
+            elif self.cords[0] < body_parts[index - 1].cords[0] and self.cords[1] == body_parts[index - 1].cords[1]:
+                if self.cords[1] < body_parts[index + 1].cords[1]:
+                    self.surf = pg.transform.rotate(self.surf, -180)
+                elif self.cords[1] > body_parts[index + 1].cords[1]:
+                    self.surf = pg.transform.rotate(self.surf, -90)
+
+            elif self.cords[0] < body_parts[index + 1].cords[0] and self.cords[1] == body_parts[index + 1].cords[1]:
+                if self.cords[1] < body_parts[index - 1].cords[1]:
+                    self.surf = pg.transform.rotate(self.surf, 180)
+                elif self.cords[1] > body_parts[index - 1].cords[1]:
+                    self.surf = pg.transform.rotate(self.surf, -90)
+
+            elif self.cords[0] > body_parts[index + 1].cords[0] and self.cords[1] == body_parts[index + 1].cords[1]:
+                if self.cords[1] < body_parts[index - 1].cords[1]:
+                    self.surf = pg.transform.rotate(self.surf, 90)
+                elif self.cords[1] > body_parts[index - 1].cords[1]:
+                    self.surf = pg.transform.rotate(self.surf, 0)
+
         screen.blit(self.surf, self.cords)
 
 
@@ -195,7 +232,7 @@ def main():
         elif keys[pg.K_DOWN]:
             key_pressed = "down"
 
-        if cnt >= 30:
+        if cnt >= 6:
             if key_pressed == "left":
                 head.direct("left")
             elif key_pressed == "right":
@@ -217,15 +254,14 @@ def main():
                 body_parts.append(Body(last_part.cords))
                 occupied = [elem.cords for elem in body_parts] + [a.cords for a in apples]
                 apple.cords = apple_rand(occupied)
-                print(apple.cords)
 
         for part in body_parts[1:]:
             if head.cords == part.cords:
                 head.los()
 
         sc.blit(bg, (0, 0))
-        for elem in body_parts[1::]:
-            elem.draw(sc)
+        for ind in range(1, len(body_parts)):
+            body_parts[ind].draw(sc, ind)
         head.draw(sc)
         for elem in apples:
             elem.draw(sc)
@@ -249,8 +285,9 @@ def los():
             my_button.update_color(RED)
 
         sc.blit(bg, (0, 0))
-        for elem in body_parts[1::]:
-            elem.draw(sc)
+        for ind in range(1, len(body_parts)):
+            body_parts[ind].draw(sc, ind)
+        head.draw(sc)
         head.draw(sc)
         for elem in apples:
             elem.draw(sc)
@@ -260,11 +297,14 @@ def los():
         clock.tick(FPS)
 
 
+head = Head()
 while flag_play:
-    head = Head()
+    scor = head.score
+    head = Head(scor)
     body_parts = [head, Body((480, 200)), Body((440, 200)), Body((400, 200))]
     apples = []
-    for _ in range(6):
+    for _ in range(10):
         apples.append(Apples())
     my_button = Button("You lost, press r to reset", 32, BLACK, RED, (W // 2, H // 2))
     main()
+
