@@ -7,6 +7,9 @@ W, H = 1000, 800
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 DARK_RED = (209, 0, 0)
+WHITE = (255, 255, 255)
+DARK_GREEN = (51, 181, 70)
+GREEN = (56, 199, 78)
 
 pg.mixer.pre_init(44100, -16, 1, 512)
 pg.init()
@@ -55,7 +58,7 @@ def direct(self, d):
 
 
 class Head:
-    def __init__(self, score=0, cords=(520, 200)):
+    def __init__(self, score="0", cords=(520, 400)):
         self.image = 'images/snake_head.png'
         self.surf = pg.image.load('images/snake_head.png')
         self.surf = pg.transform.scale_by(self.surf, 2)
@@ -176,6 +179,27 @@ class Apples:
         screen.blit(self.surf, self.cords)
 
 
+class Text:
+    def __init__(self, text, score, text_size, text_color, text_pos):
+        self.text = text
+        self.text_color = text_color
+        self.color = text_color
+        self.score = score
+        self.bg_surf = pg.Surface((W, H), pg.SRCALPHA)
+        pg.draw.rect(self.bg_surf, (*BLACK, 128), (0, 0, W, H))
+        self.font = pg.font.SysFont(None, text_size)
+        self.text_surf = self.font.render(score, True, text_color)
+        self.text_rect = self.text_surf.get_rect(center=text_pos)
+
+    def draw(self, screen):
+        self.text_surf = self.font.render(f"{self.text} {self.score}", True, self.text_color)
+        screen.blit(self.text_surf, self.text_rect)
+
+    def max(self):
+        if int(self.score) < int(head.score):
+            self.score = head.score
+
+
 class Button:
     def __init__(self, text, text_size, text_color, button_color, button_pos):
         self.bg_surf = pg.Surface((W, H), pg.SRCALPHA)
@@ -190,9 +214,8 @@ class Button:
         pg.draw.rect(self.button_surf, BLACK, (0, 0, self.button_rect.width, self.button_rect.height), 3)
 
     def draw(self, screen):
-        if head.stop:
-            screen.blit(self.button_surf, self.button_rect)
-            screen.blit(self.text_surf, self.text_rect)
+        screen.blit(self.button_surf, self.button_rect)
+        screen.blit(self.text_surf, self.text_rect)
 
     def update_color(self, button_color):
         self.button_color = button_color
@@ -254,6 +277,9 @@ def main():
                 body_parts.append(Body(last_part.cords))
                 occupied = [elem.cords for elem in body_parts] + [a.cords for a in apples]
                 apple.cords = apple_rand(occupied)
+                head.score = str(int(head.score) + 1)
+
+        text_score.score = head.score
 
         for part in body_parts[1:]:
             if head.cords == part.cords:
@@ -265,6 +291,9 @@ def main():
         head.draw(sc)
         for elem in apples:
             elem.draw(sc)
+        for elem in text_lst:
+            elem.draw(sc)
+        text_high.max()
         pg.display.update()
 
 
@@ -275,9 +304,9 @@ def los():
                 exit()
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 if check_click_on_button(my_button):
-                    return
+                    return text_score
             elif event.type == pg.KEYDOWN and event.key == pg.K_r:
-                return
+                return text_score
 
         if check_click_on_button(my_button):
             my_button.update_color(DARK_RED)
@@ -293,18 +322,54 @@ def los():
             elem.draw(sc)
         sc.blit(my_button.bg_surf, (0, 0))
         my_button.draw(sc)
+        for elem in text_lst:
+            elem.draw(sc)
         pg.display.update()
         clock.tick(FPS)
 
 
-head = Head()
+def main_ui():
+    while True:
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                exit()
+            if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+                if check_click_on_button(start_button):
+                    return False
+            elif event.type == pg.KEYDOWN and event.key == pg.K_r:
+                return False
+
+        if check_click_on_button(start_button):
+            start_button.update_color(DARK_GREEN)
+        else:
+            start_button.update_color(GREEN)
+
+        sc.blit(bg, (0, 0))
+        start_button.draw(sc)
+
+        pg.display.update()
+        clock.tick(FPS)
+
+
+score_high = 0
+head = Head("0")
+text_score = Text("Score:", head.score, 32, WHITE, (20, 20))
+text_high = Text("Highest score:", "0", 32, WHITE, (W - 180, 20))
+text_lst = [text_high, text_score]
+start = True
 while flag_play:
-    scor = head.score
-    head = Head(scor)
-    body_parts = [head, Body((480, 200)), Body((440, 200)), Body((400, 200))]
+    if score_high < int(text_score.score):
+        score_high = int(head.score)
+    head = Head("0")
+    body_parts = [head, Body((480, 400)), Body((440, 400)), Body((400, 400))]
     apples = []
+    text_high.score = str(score_high)
     for _ in range(10):
         apples.append(Apples())
     my_button = Button("You lost, press r to reset", 32, BLACK, RED, (W // 2, H // 2))
-    main()
+    start_button = Button("Press to start", 80, BLACK, GREEN, (W // 2, H // 2))
+    if start:
+        start = main_ui()
+    else:
+        main()
 
