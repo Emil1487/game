@@ -61,7 +61,8 @@ def direct(self, d):
 
 
 class Head:
-    def __init__(self, score="0", cords=(520, 400)):
+    def __init__(self, score="0", cords=(520, 400), color="green"):
+        self.color = color
         self.image = 'images/snake_head.png'
         self.surf = pg.image.load('images/snake_head.png')
         self.surf = pg.transform.scale_by(self.surf, 2)
@@ -267,7 +268,7 @@ def main():
         elif keys[pg.K_DOWN]:
             key_pressed = "down"
 
-        if cnt >= 6:
+        if cnt >= 5:
             if key_pressed == "left":
                 head.direct("left")
             elif key_pressed == "right":
@@ -303,7 +304,7 @@ def main():
         head.draw(sc)
         for elem in apples:
             elem.draw(sc)
-        for elem in text_lst:
+        for elem in text_lst[1:]:
             elem.draw(sc)
         text_high.max()
         pg.display.update()
@@ -332,7 +333,7 @@ def los():
             elem.draw(sc)
         sc.blit(my_button.bg_surf, (0, 0))
         my_button.draw(sc)
-        for elem in text_lst:
+        for elem in text_lst[1:]:
             elem.draw(sc)
         pg.display.update()
         clock.tick(FPS)
@@ -346,6 +347,12 @@ def main_ui():
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 if start_button.is_hovered():
                     return False
+                if color_blue_button.is_hovered():
+                    color_of_snake = BLUE
+                if color_green_button.is_hovered():
+                    color_of_snake = GREEN
+                if color_red_button.is_hovered():
+                    color_of_snake = RED
             elif event.type == pg.KEYDOWN and event.key == pg.K_r:
                 return False
 
@@ -355,7 +362,7 @@ def main_ui():
         sc.blit(bg, (0, 0))
         for elem in buttons[1:]:
             elem.draw(sc)
-
+        text_choose_color.draw(sc)
         pg.display.update()
         clock.tick(FPS)
 
@@ -364,7 +371,9 @@ score_high = 0
 head = Head("0")
 text_score = Text("Score:", head.score, 32, WHITE, (20, 20))
 text_high = Text("Highest score:", "0", 32, WHITE, (W - 180, 20))
-text_lst = [text_high, text_score]
+text_choose_color = Text("Choose snake color:", "", 50, WHITE, (W // 2 - 165, H // 2 - 120))
+
+text_lst = [text_choose_color, text_high, text_score]
 my_button = Button("You lost, press R to reset", 80, BLACK, RED, (W // 2, H // 2), DARK_RED)
 start_button = Button("Press to start", 80, BLACK, GREEN, (W // 2, H // 2 + 100), DARK_GREEN)
 color_blue_button = Button(".", 1, BLUE, BLUE, (W // 2 - 100, H // 2 - 50), DARK_BLUE)
